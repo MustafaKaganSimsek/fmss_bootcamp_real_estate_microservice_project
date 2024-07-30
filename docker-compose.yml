@@ -1,0 +1,148 @@
+version: "3.8"
+
+services:
+  ad-activation-service:
+    container_name: ad-activation-service
+    image: ad-activation-service
+    build:
+      context: ./fmss-final-case/ad-activation-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres-db
+      - registry
+      - rabbitmq       
+  ad-service:
+    container_name: ad-service
+    image: ad-service
+    build: 
+      context: ./fmss-final-case/ad-service
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres-db
+      - registry
+      - rabbitmq
+  gateway:
+    container_name: gateway
+    image: gateway
+    build: 
+      context: ./fmss-final-case/gateway
+      dockerfile: Dockerfile
+    depends_on:
+      - registry
+  log-service:
+    container_name: log-service
+    image: log-service
+    build: 
+      context: ./fmss-final-case/log-service
+      dockerfile: Dockerfile    
+    depends_on:
+      - mongo-express
+      - registry
+      - rabbitmq
+  payment-service:
+    container_name: payment-service
+    image: payment-service
+    build: 
+      context: ./fmss-final-case/payment-service
+      dockerfile: Dockerfile
+    
+    depends_on:
+      - postgres-db
+      - registry
+      - rabbitmq
+  registry:
+    container_name: registry
+    image: registry
+    build: 
+      context: ./fmss-final-case/registry
+      dockerfile: Dockerfile
+    
+  subscription-service:
+    container_name: subscription-service
+    image: subscription-service
+    build: 
+      context: ./fmss-final-case/subscription-service
+      dockerfile: Dockerfile    
+    depends_on:
+      - postgres-db
+      - registry
+      - rabbitmq
+  user-service:
+    container_name: user-service
+    image: user-service
+    build: 
+      context: ./fmss-final-case/user-service
+      dockerfile: Dockerfile     
+    depends_on:
+      - postgres-db
+      - registry
+      - rabbitmq
+  postgres-db:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: finalcase
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d customers -U postgres" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  pg-admin:
+    image: dpage/pgadmin4:latest
+    ports:
+      - "5050:5050"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: pgadmin@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: pgadmin
+      PGADMIN_LISTEN_PORT: 5050
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:5050/misc/ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: my_rabbit
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: 123456
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_DATABASE: notification
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: password
+volumes:
+  postgres_data:
+  pgadmin_data:
+
